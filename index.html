@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BookMe — own your booking link</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1115; --paper:#15181E; --paper-raised:#1B1F27; --line:#262B33;
+    --text:#ECEAE4; --text-muted:#8B909B; --accent:#E63946; --ok:#34C77B; --warn:#F5A623;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;min-height:100vh;
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0/40px 40px,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0/40px 40px,
+      var(--bg);
+    background-blend-mode:overlay;
+    color:var(--text);font-family:var(--font-body);
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+  header.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .mark{
+    width:34px;height:34px;border:2px solid var(--accent);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);color:var(--accent);font-weight:600;font-size:14px;transform:rotate(-4deg);
+  }
+  .brand h1{font-family:var(--font-display);font-size:20px;margin:0;}
+  .brand .sub{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+  .gear{font-size:18px;text-decoration:none;color:var(--text-muted);cursor:pointer;background:none;border:none;}
+  .gear:hover{color:var(--text);}
+
+  .banner{display:none;background:rgba(245,166,35,0.1);border:1px solid var(--warn);color:var(--warn);
+    font-family:var(--font-mono);font-size:12px;padding:10px 14px;border-radius:8px;margin-bottom:18px;line-height:1.5;}
+
+  /* date strip */
+  .datestrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:18px;}
+  .datebtn{
+    flex:0 0 auto;background:var(--paper-raised);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:9px 12px;cursor:pointer;text-align:center;font-family:var(--font-mono);font-size:11.5px;
+    line-height:1.5;min-width:64px;
+  }
+  .datebtn .dow{color:var(--text-muted);display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;}
+  .datebtn.active{border-color:var(--accent);background:rgba(230,57,70,0.10);}
+  .datebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .tzline{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:14px;}
+
+  .slotgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;}
+  .slotbtn{
+    background:var(--paper-raised);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:12px 8px;cursor:pointer;font-family:var(--font-mono);font-size:13px;text-align:center;
+  }
+  .slotbtn:hover{border-color:var(--accent);}
+  .slotbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .slots-empty{font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);padding:26px 0;text-align:center;grid-column:1/-1;line-height:1.7;}
+
+  /* booking form */
+  .bookform{display:none;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:22px;margin-top:20px;}
+  .bookform h3{font-family:var(--font-display);margin:0 0 4px;font-size:16px;}
+  .bookform .when{font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-bottom:14px;}
+  label{display:block;font-size:11.5px;color:var(--text-muted);margin:12px 0 5px;font-family:var(--font-mono);}
+  input,select{width:100%;background:var(--paper-raised);border:1px solid var(--line);color:var(--text);
+    padding:10px 12px;border-radius:7px;font-size:14px;font-family:var(--font-body);}
+  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .btnrow{display:flex;gap:10px;margin-top:16px;}
+  .btn{flex:1;border:none;padding:12px;border-radius:7px;font-family:var(--font-display);font-weight:600;font-size:13.5px;cursor:pointer;}
+  .btn.primary{background:var(--accent);color:#fff;}
+  .btn.primary:disabled{opacity:0.55;cursor:not-allowed;}
+  .btn.ghost{background:var(--paper-raised);color:var(--text);border:1px solid var(--line);}
+
+  .confirmed{display:none;background:rgba(52,199,123,0.08);border:1px solid var(--ok);border-radius:10px;
+    padding:26px 22px;margin-top:20px;text-align:center;}
+  .confirmed .big{font-family:var(--font-display);font-size:20px;color:var(--ok);margin-bottom:6px;}
+  .confirmed .when{font-family:var(--font-mono);font-size:13px;}
+  .confirmed .sub{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:10px;}
+
+  .formerr{display:none;font-family:var(--font-mono);font-size:12px;color:var(--warn);margin-top:12px;line-height:1.5;}
+
+  /* admin */
+  #adminView{display:none;}
+  .authbox{max-width:340px;margin:40px auto;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:24px;}
+  .authbox h2{font-family:var(--font-display);font-size:16px;margin:0 0 14px;}
+  .tabs{display:flex;gap:8px;margin:20px 0 16px;}
+  .tab{font-family:var(--font-mono);font-size:12px;background:var(--paper-raised);border:1px solid var(--line);
+    color:var(--text-muted);padding:8px 14px;border-radius:20px;cursor:pointer;}
+  .tab.active{border-color:var(--accent);color:var(--text);background:rgba(230,57,70,0.10);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);
+    text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{padding:10px;border-bottom:1px solid var(--line);}
+  .pill{font-family:var(--font-mono);font-size:10px;border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:2px 8px;}
+  .dayrow{display:grid;grid-template-columns:80px 40px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px;}
+  .dayrow .dname{font-family:var(--font-mono);font-size:12px;text-transform:capitalize;}
+  .savebtn{margin-top:16px;}
+  .adminmsg{font-family:var(--font-mono);font-size:12px;margin-top:12px;min-height:18px;}
+  .adminmsg.ok{color:var(--ok);} .adminmsg.err{color:var(--warn);}
+
+  footer.foot{margin-top:44px;border-top:1px solid var(--line);padding-top:16px;text-align:center;
+    font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">BM</div>
+      <div>
+        <h1>BookMe</h1>
+        <div class="sub">grab a time that works for you</div>
+      </div>
+    </div>
+    <button class="gear" id="gearBtn" title="Admin">⚙</button>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <!-- PUBLIC VIEW -->
+  <div id="publicView">
+    <div class="datestrip" id="datestrip"></div>
+    <div class="tzline" id="tzline"></div>
+    <div class="slotgrid" id="slotgrid">
+      <div class="slots-empty">Pick a date above to see available times.</div>
+    </div>
+
+    <div class="bookform" id="bookform">
+      <h3>Confirm your slot</h3>
+      <div class="when" id="formWhen"></div>
+      <label for="bkName">Your name</label>
+      <input id="bkName" type="text" autocomplete="name">
+      <label for="bkEmail">Your email</label>
+      <input id="bkEmail" type="email" autocomplete="email">
+      <div class="btnrow">
+        <button class="btn ghost" id="bkCancel">Back</button>
+        <button class="btn primary" id="bkConfirm">Confirm booking</button>
+      </div>
+      <div class="formerr" id="formErr"></div>
+    </div>
+
+    <div class="confirmed" id="confirmed">
+      <div class="big">Booked ✓</div>
+      <div class="when" id="confirmedWhen"></div>
+      <div class="sub">See you then. (Times shown in your local timezone.)</div>
+    </div>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div id="adminView">
+    <div class="authbox" id="authbox">
+      <h2>Admin access</h2>
+      <label for="adminPass">Password</label>
+      <input id="adminPass" type="password">
+      <div class="btnrow"><button class="btn primary" id="adminLoginBtn">Enter</button></div>
+      <div class="adminmsg err" id="authErr"></div>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+      <div class="tabs">
+        <button class="tab active" data-tab="bookings">Bookings</button>
+        <button class="tab" data-tab="availability">Availability</button>
+      </div>
+
+      <div id="tab-bookings">
+        <table>
+          <thead><tr><th>When (your time)</th><th>Name</th><th>Email</th></tr></thead>
+          <tbody id="bookingsBody"></tbody>
+        </table>
+        <div class="adminmsg" id="bookingsMsg"></div>
+      </div>
+
+      <div id="tab-availability" style="display:none;">
+        <div id="dayrows"></div>
+        <label for="tzInput">Your timezone</label>
+        <input id="tzInput" list="tzlist">
+        <datalist id="tzlist"></datalist>
+        <div class="btnrow savebtn"><button class="btn primary" id="saveAvailBtn">Save availability</button></div>
+        <div class="adminmsg" id="availMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">Self-hosted booking — no subscription.</footer>
+</div>
+
+<script>
+(function(){
+  // ---------------- state ----------------
+  let selectedDate = null;
+  let selectedSlotUtc = null;
+  let adminPassword = null;
+
+  const $ = id => document.getElementById(id);
+  const visitorTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+  const timeFmt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+  const fullFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  function showBanner(msg){ const b=$('banner'); b.textContent=msg; b.style.display='block'; }
+  function hideBanner(){ $('banner').style.display='none'; }
+
+  // ---------------- date strip ----------------
+  function buildDateStrip(){
+    const strip = $('datestrip');
+    strip.innerHTML = '';
+    const dowFmt = new Intl.DateTimeFormat(undefined, { weekday:'short' });
+    const dayFmt = new Intl.DateTimeFormat(undefined, { day:'numeric', month:'short' });
+    for(let i=0;i<14;i++){
+      const d = new Date();
+      d.setDate(d.getDate()+i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const dateStr = `${y}-${m}-${dd}`;
+      const btn = document.createElement('button');
+      btn.className = 'datebtn';
+      btn.dataset.date = dateStr;
+      btn.innerHTML = `<span class="dow">${dowFmt.format(d)}</span>${dayFmt.format(d)}`;
+      btn.addEventListener('click', () => selectDate(dateStr, btn));
+      strip.appendChild(btn);
+    }
+    $('tzline').textContent = 'Times shown in ' + visitorTz;
+  }
+
+  async function selectDate(dateStr, btn){
+    document.querySelectorAll('.datebtn').forEach(b=>b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    selectedDate = dateStr;
+    $('bookform').style.display='none';
+    $('confirmed').style.display='none';
+    await loadSlots();
+  }
+
+  async function loadSlots(){
+    const grid = $('slotgrid');
+    grid.innerHTML = '<div class="slots-empty">Loading…</div>';
+    hideBanner();
+    try{
+      const resp = await fetch('/api/slots?date=' + selectedDate);
+      const data = await resp.json();
+      if(data.error){ grid.innerHTML=''; showBanner(data.error); return; }
+      if(data.configured === false){
+        grid.innerHTML = '<div class="slots-empty">The owner hasn\\u2019t set their availability yet.</div>';
+        return;
+      }
+      if(!data.slots || data.slots.length === 0){
+        grid.innerHTML = '<div class="slots-empty">No free times on this date — try another day.</div>';
+        return;
+      }
+      grid.innerHTML = '';
+      data.slots.forEach(s => {
+        const b = document.createElement('button');
+        b.className = 'slotbtn';
+        b.textContent = timeFmt.format(new Date(s.slotUtc));
+        b.dataset.slot = s.slotUtc;
+        b.addEventListener('click', () => openForm(s.slotUtc));
+        grid.appendChild(b);
+      });
+    }catch(err){
+      grid.innerHTML='';
+      showBanner('Could not reach the server: ' + err.message);
+    }
+  }
+
+  // ---------------- booking ----------------
+  function openForm(slotUtc){
+    selectedSlotUtc = slotUtc;
+    $('formWhen').textContent = fullFmt.format(new Date(slotUtc)) + ' (' + visitorTz + ')';
+    $('formErr').style.display='none';
+    $('bookform').style.display='block';
+    $('confirmed').style.display='none';
+    $('bkName').focus();
+  }
+
+  async function confirmBooking(){
+    const name = $('bkName').value.trim();
+    const email = $('bkEmail').value.trim();
+    const errEl = $('formErr');
+    errEl.style.display='none';
+    $('bkConfirm').disabled = true;
+    try{
+      const resp = await fetch('/api/book', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ slotUtc: selectedSlotUtc, name, email })
+      });
+      const data = await resp.json();
+      if(data.error){
+        errEl.textContent = data.error;
+        errEl.style.display='block';
+        if(resp.status === 409) await loadSlots();   // slot got taken — refresh grid
+      } else {
+        $('bookform').style.display='none';
+        $('confirmedWhen').textContent = fullFmt.format(new Date(selectedSlotUtc)) + ' (' + visitorTz + ')';
+        $('confirmed').style.display='block';
+        await loadSlots();                            // taken slot disappears
+      }
+    }catch(err){
+      errEl.textContent = 'Could not reach the server: ' + err.message;
+      errEl.style.display='block';
+    }finally{
+      $('bkConfirm').disabled = false;
+    }
+  }
+
+  $('bkConfirm').addEventListener('click', confirmBooking);
+  $('bkCancel').addEventListener('click', ()=>{ $('bookform').style.display='none'; });
+
+  // ---------------- admin ----------------
+  const DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+
+  $('gearBtn').addEventListener('click', ()=>{
+    const showingAdmin = $('adminView').style.display === 'block';
+    $('adminView').style.display = showingAdmin ? 'none' : 'block';
+    $('publicView').style.display = showingAdmin ? 'block' : 'none';
+  });
+
+  $('adminLoginBtn').addEventListener('click', adminLogin);
+  $('adminPass').addEventListener('keydown', e=>{ if(e.key==='Enter') adminLogin(); });
+
+  async function adminApi(action, payload){
+    const resp = await fetch('/api/admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ password: adminPassword, action, payload })
+    });
+    return { status: resp.status, data: await resp.json() };
+  }
+
+  async function adminLogin(){
+    adminPassword = $('adminPass').value;
+    $('authErr').textContent = '';
+    const { status, data } = await adminApi('getBookings');
+    if(status !== 200){
+      $('authErr').textContent = data.error || 'Login failed.';
+      adminPassword = null;
+      return;
+    }
+    $('authbox').style.display='none';
+    $('adminPanel').style.display='block';
+    renderBookings(data.bookings);
+    buildAvailabilityEditor();
+  }
+
+  function renderBookings(bookings){
+    const tbody = $('bookingsBody');
+    tbody.innerHTML = '';
+    if(!bookings.length){
+      $('bookingsMsg').textContent = 'No bookings yet.';
+      return;
+    }
+    $('bookingsMsg').textContent = '';
+    bookings.forEach(b=>{
+      const tr = document.createElement('tr');
+      const when = fullFmt.format(new Date(b.slotUtc));
+      if(b.blocked){
+        tr.innerHTML = `<td>${when}</td><td colspan="2"><span class="pill">blocked</span></td>`;
+      } else {
+        tr.innerHTML = `<td>${when}</td><td></td><td></td>`;
+        tr.children[1].textContent = b.name;
+        tr.children[2].textContent = b.email;
+      }
+      tbody.appendChild(tr);
+    });
+  }
+
+  function buildAvailabilityEditor(){
+    const wrap = $('dayrows');
+    if(wrap.childElementCount) return;
+    DAYS.forEach(d=>{
+      const row = document.createElement('div');
+      row.className='dayrow';
+      row.innerHTML = `
+        <span class="dname">${d}</span>
+        <input type="checkbox" data-day="${d}" ${['sat','sun'].includes(d)?'':'checked'}>
+        <input type="time" data-start="${d}" value="10:00">
+        <input type="time" data-end="${d}" value="17:00">`;
+      wrap.appendChild(row);
+    });
+    $('tzInput').value = visitorTz;
+    if(typeof Intl.supportedValuesOf === 'function'){
+      const dl = $('tzlist');
+      Intl.supportedValuesOf('timeZone').forEach(tz=>{
+        const o=document.createElement('option'); o.value=tz; dl.appendChild(o);
+      });
+    }
+  }
+
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      $('tab-bookings').style.display = t.dataset.tab==='bookings' ? 'block':'none';
+      $('tab-availability').style.display = t.dataset.tab==='availability' ? 'block':'none';
+    });
+  });
+
+  $('saveAvailBtn').addEventListener('click', async ()=>{
+    const weekly = {};
+    DAYS.forEach(d=>{
+      const on = document.querySelector(`input[data-day="${d}"]`).checked;
+      const start = document.querySelector(`input[data-start="${d}"]`).value;
+      const end = document.querySelector(`input[data-end="${d}"]`).value;
+      weekly[d] = on && start && end ? [{start, end}] : [];
+    });
+    const tz = $('tzInput').value.trim();
+    const msg = $('availMsg');
+    const { status, data } = await adminApi('setAvailability', { weekly, adminTimezone: tz });
+    msg.className = 'adminmsg ' + (status===200 ? 'ok' : 'err');
+    msg.textContent = status===200 ? 'Saved ✓' : (data.error || 'Save failed.');
+  });
+
+  // ---------------- boot ----------------
+  buildDateStrip();
+  fetch('/api/health').then(r=>r.json()).then(d=>console.log('health:', d)).catch(()=>{});
+})();
+</script>
+</body>
+</html>
